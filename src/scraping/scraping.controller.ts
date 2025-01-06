@@ -5,9 +5,8 @@ import { ScrapingService } from './scraping.service';
 export class ScrapingController {
   constructor(private readonly scrapingService: ScrapingService) {}
 
-  @Get('currency')
-  async obtenerPrecioDolar() {
-    const currencies = await this.scrapingService.currencies();
-    return { currencies };
+  @Get('rates')
+  async getRates() {
+    return this.scrapingService.getExchangeRates();
   }
 }

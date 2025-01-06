@@ -1,31 +1,30 @@
 import { Injectable } from '@nestjs/common';
-import axios from 'axios';
-import cheerio from 'cheerio';
-import { count } from 'console';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import * as cheerio from 'cheerio';
 
 @Injectable()
 export class ScrapingService {
-  async currencies(): Promise<any> {
+  constructor(private readonly httpService: HttpService) {}
+  async getExchangeRates(): Promise<any> {
     try {
-      const response = await axios.get('https://eltoque.com/');
-      const $ = cheerio.load(response.data);
-      const currencies = $('.price-text').text();
-      console.log(currencies)
-      let strings = currencies.split("P");
-      strings.pop()
-      strings = strings.map(c => c + "P");
+      const url = 'https://eltoque.com/';
+      const { data } = await firstValueFrom(this.httpService.get(url));
 
-      let dollar = strings[0] ? strings[0] : '';
-      let euro = strings[1] ? strings[1] : '';
-      let mlc = strings[2] ? strings[2] : '';
-    
-      let data = {
-        "dollar": dollar,
-        "euro": euro,
-        "mlc": mlc
-      }
+      const $ = cheerio.load(data);
 
-      return data;
+      const rates: Record<string, string> = {};
+      $('table tbody tr').each((index, element) => {
+        let currency = $(element).find('.currency').text().trim();
+        const price = $(element).find('.price-text').text().trim();
+
+        if (currency && price) {
+          currency = currency.split(' ')[1];
+          rates[currency] = price;
+        }
+      });
+
+      return rates;
     } catch (error) {
       throw new Error('Error obtaining currencies');
     }
